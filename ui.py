@@ -16,20 +16,19 @@ with gr.Blocks() as demo:
     with gr.Column():
         with gr.Row():
             with gr.Column():
-                s = gr.Slider(label="steps", minimum=4, maximum=100, step=1, value=50, interactive=True)
-                c = gr.Slider(label="cfg", minimum=0.1, maximum=20, step=0.1, value=7.5, interactive=True)
-                i_s = gr.Slider(label="sketch strength", minimum=0.1, maximum=1.0, step=0.1, value=0.75, interactive=True)
-                noise = gr.Slider(label="noise", minimum=0.0, maximum=1.0, step=0.01, value=0.5, interactive=True)
+                s = gr.Slider(label="Inference Steps", minimum=4, maximum=100, step=1, value=75, interactive=True)
+                c = gr.Slider(label="Guidance Scale", minimum=1, maximum=15, step=0.1, value=12.5, interactive=True)
+                i_s = gr.Slider(label="Image Strength", minimum=0.1, maximum=1.0, step=0.05, value=0.5, interactive=True)
             with gr.Column():
-                mod = gr.Text(label="Hugging Face Model ID", value="Lykon/dreamshaper-7", interactive=True)
-                t = gr.Text(label="Prompt", value="A futuristic cityscape", interactive=True)
-                se = gr.Number(label="seed", value=1337, interactive=True)
+                mod = gr.Textbox(label="Model ID", value="Lykon/dreamshaper-7", interactive=True)
+                t = gr.Textbox(label="Prompt", value="A beautiful landscape", interactive=True)
+                se = gr.Number(label="Seed", value=random.randint(0, 2**63), interactive=True)
 
         with gr.Row(equal_height=True):
             i = gr.Image(source="canvas", tool="color-sketch", shape=(canvas_size, canvas_size), width=canvas_size, height=canvas_size, type="pil")
             o = gr.Image(width=canvas_size, height=canvas_size)
 
-            def process_image(p, im, steps, cfg, image_strength, seed, noise_level):
+            def process_image(p, im, steps, cfg, image_strength, seed):
                 if not im:
                     return Image.new("RGB", (canvas_size, canvas_size))
                 return infer(
@@ -41,7 +40,7 @@ with gr.Blocks() as demo:
                     seed=int(seed)
                 )
 
-            reactive_controls = [t, i, s, c, i_s, se, noise]
+            reactive_controls = [t, i, s, c, i_s, se]
 
             for control in reactive_controls:
                 control.change(fn=process_image, inputs=reactive_controls, outputs=o)
