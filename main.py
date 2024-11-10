@@ -4,9 +4,11 @@ from os import path
 import time
 from sys import platform
 import torch
+from diffusers import StableDiffusionImg2ImgPipeline, LCMScheduler
+from diffusers.utils import load_image
+from accelerate import Accelerator
 
 cache_path = path.join(path.dirname(path.abspath(__file__)), "models")
-
 os.environ["TRANSFORMERS_CACHE"] = cache_path
 os.environ["HF_HUB_CACHE"] = cache_path
 os.environ["HF_HOME"] = cache_path
@@ -16,17 +18,15 @@ def should_use_fp16():
     if is_mac:
         return True
 
-    try:
-        gpu_props = torch.cuda.get_device_properties("cuda")
-        if gpu_props.major < 6:
-            return False
+    gpu_props = torch.cuda.get_device_properties("cuda")
 
-        nvidia_16_series = ["1660", "1650", "1630"]
-        for x in nvidia_16_series:
-            if x in gpu_props.name:
-                return False
-    except Exception:
+    if gpu_props.major < 6:
         return False
+
+    nvidia_16_series = ["1660", "1650", "1630"]
+    for x in nvidia_16_series:
+        if x in gpu_props.name:
+            return False
 
     return True
 
@@ -43,15 +43,14 @@ class timer:
         print(f"{self.method} took {str(round(end - self.start, 2))}s")
 
 def load_models(model_id="Lykon/dreamshaper-7"):
-    from diffusers import StableDiffusionImg2ImgPipeline, EulerDiscreteScheduler
-    from diffusers.utils import load_image
+    # Initialize the accelerator for optimized performance (multi-GPU or precision control)
+    accelerator = Accelerator()
 
     if not is_mac:
         torch.backends.cuda.matmul.allow_tf32 = True
 
     use_fp16 = should_use_fp16()
 
-    # Model loading with advanced configuration options
     if use_fp16:
         pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
             model_id,
@@ -65,21 +64,19 @@ def load_models(model_id="Lykon/dreamshaper-7"):
             safety_checker=None
         )
 
-    # Advanced scheduler for better control over the generation
-    pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
+    pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
 
-    # Move model to GPU or MPS
-    pipe.to("cuda" if torch.cuda.is_available() else "mps")
+    # Move model to the correct device (CUDA or MPS)
+    pipe.to(accelerator.device)
 
-    # Seed generator for reproducibility
     generator = torch.Generator()
 
     def infer(
             prompt,
             image,
-            num_inference_steps=50,
-            guidance_scale=7.5,
-            strength=0.75,
+            num_inference_steps=75,  # Increased for finer detail
+            guidance_scale=12.5,  # Increased for more accurate prompt adherence
+            strength=0.5,  # Adjusted for more control over image generation
             seed=random.randrange(0, 2**63)
     ):
         with torch.inference_mode():
@@ -95,4 +92,3 @@ def load_models(model_id="Lykon/dreamshaper-7"):
                     ).images[0]
 
     return infer
-
