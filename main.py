@@ -42,7 +42,7 @@ class timer:
         end = time.time()
         print(f"{self.method} took {str(round(end - self.start, 2))}s")
 
-def load_models(model_id="CompVis/stable-diffusion-v1-4-original"):
+def load_models(model_id="Lykon/dreamshaper-7"):
     # Initialize the accelerator for optimized performance (multi-GPU or precision control)
     accelerator = Accelerator()
 
