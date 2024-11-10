@@ -1,0 +1,6 @@
+torch==2.0.1            # Specify compatible torch version
+torchvision==0.15.2     # For image preprocessing (Grayscale, ColorJitter, etc.)
+diffusers==0.14.0       # For loading and configuring image generation pipeline
+transformers==4.31.0    # For model management in Hugging Face
+Pillow==10.0.0          # For handling image input/output
+gradio==3.36.0          # For creating the web UI interface
