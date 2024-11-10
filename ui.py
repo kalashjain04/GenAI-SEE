@@ -16,18 +16,20 @@ with gr.Blocks() as demo:
     with gr.Column():
         with gr.Row():
             with gr.Column():
-                s = gr.Slider(label="steps", minimum=4, maximum=8, step=1, value=4, interactive=True)
-                c = gr.Slider(label="cfg", minimum=0.1, maximum=3, step=0.1, value=1, interactive=True)
-                i_s = gr.Slider(label="sketch strength", minimum=0.1, maximum=0.9, step=0.1, value=0.9, interactive=True)
+                s = gr.Slider(label="steps", minimum=4, maximum=100, step=1, value=50, interactive=True)
+                c = gr.Slider(label="cfg", minimum=0.1, maximum=20, step=0.1, value=7.5, interactive=True)
+                i_s = gr.Slider(label="sketch strength", minimum=0.1, maximum=1.0, step=0.1, value=0.75, interactive=True)
+                noise = gr.Slider(label="noise", minimum=0.0, maximum=1.0, step=0.01, value=0.5, interactive=True)
             with gr.Column():
-                mod = gr.Text(label="Hugging Face Model ID (after changing this wait until the model downloads in the console)", value="Lykon/dreamshaper-7", interactive=True)
-                t = gr.Text(label="Prompt", value="", interactive=True)
+                mod = gr.Text(label="Hugging Face Model ID", value="Lykon/dreamshaper-7", interactive=True)
+                t = gr.Text(label="Prompt", value="A futuristic cityscape", interactive=True)
                 se = gr.Number(label="seed", value=1337, interactive=True)
+
         with gr.Row(equal_height=True):
             i = gr.Image(source="canvas", tool="color-sketch", shape=(canvas_size, canvas_size), width=canvas_size, height=canvas_size, type="pil")
             o = gr.Image(width=canvas_size, height=canvas_size)
 
-            def process_image(p, im, steps, cfg, image_strength, seed):
+            def process_image(p, im, steps, cfg, image_strength, seed, noise_level):
                 if not im:
                     return Image.new("RGB", (canvas_size, canvas_size))
                 return infer(
@@ -39,7 +41,7 @@ with gr.Blocks() as demo:
                     seed=int(seed)
                 )
 
-            reactive_controls = [t, i, s, c, i_s, se]
+            reactive_controls = [t, i, s, c, i_s, se, noise]
 
             for control in reactive_controls:
                 control.change(fn=process_image, inputs=reactive_controls, outputs=o)
@@ -49,7 +51,6 @@ with gr.Blocks() as demo:
                 infer = load_models(model_name)
 
             mod.change(fn=update_model, inputs=mod)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
