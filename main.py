@@ -1,7 +1,6 @@
 import os
 import random
 from os import path
-from contextlib import nullcontext
 import time
 from sys import platform
 import torch
@@ -17,16 +16,17 @@ def should_use_fp16():
     if is_mac:
         return True
 
-    gpu_props = torch.cuda.get_device_properties("cuda")
-
-    if gpu_props.major < 6:
-        return False
-
-    nvidia_16_series = ["1660", "1650", "1630"]
-
-    for x in nvidia_16_series:
-        if x in gpu_props.name:
+    try:
+        gpu_props = torch.cuda.get_device_properties("cuda")
+        if gpu_props.major < 6:
             return False
+
+        nvidia_16_series = ["1660", "1650", "1630"]
+        for x in nvidia_16_series:
+            if x in gpu_props.name:
+                return False
+    except Exception:
+        return False
 
     return True
 
@@ -42,9 +42,8 @@ class timer:
         end = time.time()
         print(f"{self.method} took {str(round(end - self.start, 2))}s")
 
-
 def load_models(model_id="Lykon/dreamshaper-7"):
-    from diffusers import StableDiffusionImg2ImgPipeline, LCMScheduler
+    from diffusers import StableDiffusionImg2ImgPipeline, EulerDiscreteScheduler
     from diffusers.utils import load_image
 
     if not is_mac:
@@ -52,6 +51,7 @@ def load_models(model_id="Lykon/dreamshaper-7"):
 
     use_fp16 = should_use_fp16()
 
+    # Model loading with advanced configuration options
     if use_fp16:
         pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
             model_id,
@@ -65,10 +65,13 @@ def load_models(model_id="Lykon/dreamshaper-7"):
             safety_checker=None
         )
 
-    pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
+    # Advanced scheduler for better control over the generation
+    pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
 
+    # Move model to GPU or MPS
     pipe.to("cuda" if torch.cuda.is_available() else "mps")
 
+    # Seed generator for reproducibility
     generator = torch.Generator()
 
     def infer(
@@ -92,3 +95,4 @@ def load_models(model_id="Lykon/dreamshaper-7"):
                     ).images[0]
 
     return infer
+
