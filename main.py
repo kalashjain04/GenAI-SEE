@@ -1,18 +1,21 @@
 import os
 import random
+import torch
 from os import path
 from contextlib import nullcontext
 import time
 from sys import platform
-import torch
-import torchvision.transforms as T
-from PIL import Image
 
 cache_path = path.join(path.dirname(path.abspath(__file__)), "models")
+
+# Ensure the cache path exists
+if not path.exists(cache_path):
+    os.makedirs(cache_path, exist_ok=True)
 
 os.environ["TRANSFORMERS_CACHE"] = cache_path
 os.environ["HF_HUB_CACHE"] = cache_path
 os.environ["HF_HOME"] = cache_path
+
 is_mac = platform == "darwin"
 
 def should_use_fp16():
@@ -44,18 +47,6 @@ class timer:
         end = time.time()
         print(f"{self.method} took {str(round(end - self.start, 2))}s")
 
-
-def preprocess_image(image):
-    """Applies grayscale, edge detection, and slight noise augmentation."""
-    transform = T.Compose([
-        T.Resize((512, 512)),
-        T.Grayscale(),
-        T.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
-        T.ColorJitter(brightness=0.1, contrast=0.1)
-    ])
-    return transform(image)
-
-
 def load_models(model_id="Lykon/dreamshaper-7"):
     from diffusers import AutoPipelineForImage2Image, LCMScheduler
     from diffusers.utils import load_image
@@ -83,10 +74,12 @@ def load_models(model_id="Lykon/dreamshaper-7"):
         )
 
     pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
+
     pipe.load_lora_weights(lcm_lora_id)
     pipe.fuse_lora()
 
     device = "mps" if is_mac else "cuda"
+
     pipe.to(device=device)
 
     generator = torch.Generator()
@@ -102,10 +95,9 @@ def load_models(model_id="Lykon/dreamshaper-7"):
         with torch.inference_mode():
             with torch.autocast("cuda") if device == "cuda" else nullcontext():
                 with timer("inference"):
-                    processed_image = preprocess_image(load_image(image))
                     return pipe(
                         prompt=prompt,
-                        image=processed_image,
+                        image=load_image(image),
                         generator=generator.manual_seed(seed),
                         num_inference_steps=num_inference_steps,
                         guidance_scale=guidance_scale,
