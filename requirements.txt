@@ -1,6 +1,6 @@
 diffusers
 flask
-torch==2.0.1transformers
+torch==2.0.1
 accelerate
 pillow
 gradio==3.41.2
