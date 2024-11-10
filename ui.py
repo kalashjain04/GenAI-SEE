@@ -20,7 +20,7 @@ with gr.Blocks() as demo:
                 c = gr.Slider(label="Guidance Scale", minimum=1, maximum=15, step=0.1, value=12.5, interactive=True)
                 i_s = gr.Slider(label="Image Strength", minimum=0.1, maximum=1.0, step=0.05, value=0.5, interactive=True)
             with gr.Column():
-                mod = gr.Textbox(label="Model ID", value="ZB-Tech/Text-to-Image", interactive=True)
+                mod = gr.Textbox(label="Model ID", value="CompVis/stable-diffusion-v1-4-original", interactive=True)
                 t = gr.Textbox(label="Prompt", value="A beautiful landscape", interactive=True)
                 se = gr.Number(label="Seed", value=random.randint(0, 2**63), interactive=True)
 
