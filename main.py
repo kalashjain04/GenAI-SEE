@@ -1,39 +1,34 @@
-# main.py
-import os
-import random
-import torch
-from diffusers import StableDiffusionPipeline
-from contextlib import contextmanager
-import time
+# ui.py
+import gradio as gr
+from main import load_model, infer
 
-cache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+# Load the model
+pipe = load_model()
 
-# Set cache environment
-os.environ["TRANSFORMERS_CACHE"] = cache_path
-os.environ["HF_HOME"] = cache_path
+# Gradio app function
+def generate_image(prompt, steps, scale, seed):
+    return infer(pipe, prompt, num_steps=steps, guidance_scale=scale, seed=seed)
 
-# Timer context manager
-@contextmanager
-def timer(name):
-    start = time.time()
-    yield
-    print(f"{name} took {round(time.time() - start, 2)}s")
+# Gradio UI
+with gr.Blocks() as demo:
+    gr.Markdown("## Stable Diffusion XL Demo")
 
-# Load the model with FP16 support if possible
-def load_model(model_id="stabilityai/stable-diffusion-xl-base-1.5", use_fp16=True):
-    if use_fp16 and torch.cuda.is_available():
-        dtype = torch.float16
-    else:
-        dtype = torch.float32
+    with gr.Row():
+        prompt = gr.Textbox(label="Prompt", placeholder="Enter image description")
+        seed = gr.Number(label="Seed", value=12345)
 
-    pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=dtype)
-    pipe = pipe.to("cuda" if torch.cuda.is_available() else "cpu")
-    return pipe
+    with gr.Row():
+        steps = gr.Slider(label="Steps", minimum=10, maximum=100, step=10, value=50)
+        scale = gr.Slider(label="Guidance Scale", minimum=5.0, maximum=15.0, step=0.5, value=7.5)
 
-# Run inference
-def infer(pipe, prompt, num_steps=50, guidance_scale=7.5, seed=None):
-    generator = torch.manual_seed(seed or random.randint(0, 2**32 - 1))
-    with torch.inference_mode():
-        with timer("Inference"):
-            result = pipe(prompt, num_inference_steps=num_steps, guidance_scale=guidance_scale, generator=generator)
-    return result.images[0]
+    output_image = gr.Image(label="Generated Image", type="pil")
+    generate_btn = gr.Button("Generate Image")
+
+    generate_btn.click(
+        fn=generate_image,
+        inputs=[prompt, steps, scale, seed],
+        outputs=[output_image]
+    )
+
+if __name__ == "__main__":
+    demo.launch()
