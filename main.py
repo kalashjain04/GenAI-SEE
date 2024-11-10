@@ -1,21 +1,16 @@
 import os
 import random
-import torch
 from os import path
 from contextlib import nullcontext
 import time
 from sys import platform
+import torch
 
 cache_path = path.join(path.dirname(path.abspath(__file__)), "models")
-
-# Ensure the cache path exists
-if not path.exists(cache_path):
-    os.makedirs(cache_path, exist_ok=True)
 
 os.environ["TRANSFORMERS_CACHE"] = cache_path
 os.environ["HF_HUB_CACHE"] = cache_path
 os.environ["HF_HOME"] = cache_path
-
 is_mac = platform == "darwin"
 
 def should_use_fp16():
@@ -47,8 +42,9 @@ class timer:
         end = time.time()
         print(f"{self.method} took {str(round(end - self.start, 2))}s")
 
+
 def load_models(model_id="Lykon/dreamshaper-7"):
-    from diffusers import AutoPipelineForImage2Image, LCMScheduler
+    from diffusers import StableDiffusionImg2ImgPipeline, LCMScheduler
     from diffusers.utils import load_image
 
     if not is_mac:
@@ -56,44 +52,35 @@ def load_models(model_id="Lykon/dreamshaper-7"):
 
     use_fp16 = should_use_fp16()
 
-    lcm_lora_id = "latent-consistency/lcm-lora-sdv1-5"
-
     if use_fp16:
-        pipe = AutoPipelineForImage2Image.from_pretrained(
+        pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
             model_id,
-            cache_dir=cache_path,
             torch_dtype=torch.float16,
             variant="fp16",
             safety_checker=None
         )
     else:
-        pipe = AutoPipelineForImage2Image.from_pretrained(
+        pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
             model_id,
-            cache_dir=cache_path,
             safety_checker=None
         )
 
     pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
 
-    pipe.load_lora_weights(lcm_lora_id)
-    pipe.fuse_lora()
-
-    device = "mps" if is_mac else "cuda"
-
-    pipe.to(device=device)
+    pipe.to("cuda" if torch.cuda.is_available() else "mps")
 
     generator = torch.Generator()
 
     def infer(
             prompt,
             image,
-            num_inference_steps=4,
-            guidance_scale=1,
-            strength=0.9,
+            num_inference_steps=50,
+            guidance_scale=7.5,
+            strength=0.75,
             seed=random.randrange(0, 2**63)
     ):
         with torch.inference_mode():
-            with torch.autocast("cuda") if device == "cuda" else nullcontext():
+            with torch.autocast("cuda" if torch.cuda.is_available() else "mps"):
                 with timer("inference"):
                     return pipe(
                         prompt=prompt,
