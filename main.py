@@ -42,7 +42,7 @@ class timer:
         end = time.time()
         print(f"{self.method} took {str(round(end - self.start, 2))}s")
 
-def load_models(model_id="Lykon/dreamshaper-7"):
+def load_models(model_id="ZB-Tech/Text-to-Image"):
     # Initialize the accelerator for optimized performance (multi-GPU or precision control)
     accelerator = Accelerator()
 
