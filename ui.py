@@ -19,6 +19,8 @@ with gr.Blocks(css="style.css") as demo:
                 s = gr.Slider(label="Steps", minimum=4, maximum=8, step=1, value=4, interactive=True)
                 c = gr.Slider(label="CFG", minimum=0.1, maximum=3, step=0.1, value=1, interactive=True)
                 i_s = gr.Slider(label="Sketch Strength", minimum=0.1, maximum=0.9, step=0.1, value=0.9, interactive=True)
+                brightness = gr.Slider(label="Brightness", minimum=0.5, maximum=2.0, step=0.1, value=1.0, interactive=True)
+                contrast = gr.Slider(label="Contrast", minimum=0.5, maximum=2.0, step=0.1, value=1.0, interactive=True)
             with gr.Column():
                 mod = gr.Text(label="Model ID", value="Lykon/dreamshaper-7", interactive=True)
                 t = gr.Text(label="Prompt", value="", interactive=True)
@@ -27,7 +29,7 @@ with gr.Blocks(css="style.css") as demo:
             i = gr.Image(source="canvas", tool="color-sketch", shape=(canvas_size, canvas_size), width=canvas_size, height=canvas_size, type="pil")
             o = gr.Image(width=canvas_size, height=canvas_size)
 
-            def process_image(p, im, steps, cfg, image_strength, seed):
+            def process_image(p, im, steps, cfg, image_strength, seed, brightness, contrast):
                 if not im:
                     return Image.new("RGB", (canvas_size, canvas_size))
                 return infer(
@@ -36,11 +38,12 @@ with gr.Blocks(css="style.css") as demo:
                     num_inference_steps=steps,
                     guidance_scale=cfg,
                     strength=image_strength,
+                    brightness=brightness,
+                    contrast=contrast,
                     seed=int(seed)
                 )
 
-            reactive_controls = [t, i, s, c, i_s, se]
-
+            reactive_controls = [t, i, s, c, i_s, se, brightness, contrast]
             for control in reactive_controls:
                 control.change(fn=process_image, inputs=reactive_controls, outputs=o)
 
@@ -55,3 +58,4 @@ if __name__ == "__main__":
     parser.add_argument("--share", action="store_true", help="Deploy on Gradio for sharing", default=False)
     args = parser.parse_args()
     demo.launch(share=args.share)
+
