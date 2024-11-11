@@ -1,8 +1,7 @@
-diffusers
-flask
-torch
-transformers
-accelerate
-pillow
-gradio==3.41.2
-peft
+torch==2.0.1            # Ensure CUDA compatibility
+transformers==4.33.2    # Required for working with Hugging Face models
+diffusers==0.14.0       # For Stable Diffusion and other diffusion pipelines
+gradio==3.18.0          # For building the interactive UI
+Pillow==10.0.1          # For image manipulation and PIL Image handling
+numpy==1.23.5           # General computation, used by many ML models
+scipy==1.10.1           # Sometimes required by ML models for additional functionality
