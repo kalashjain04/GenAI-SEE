@@ -5,6 +5,7 @@ from contextlib import nullcontext
 import time
 from sys import platform
 import torch
+from PIL import ImageEnhance
 
 cache_path = path.join(path.dirname(path.abspath(__file__)), "models")
 
@@ -18,16 +19,12 @@ def should_use_fp16():
         return True
 
     gpu_props = torch.cuda.get_device_properties("cuda")
-
     if gpu_props.major < 6:
         return False
-
     nvidia_16_series = ["1660", "1650", "1630"]
-
     for x in nvidia_16_series:
         if x in gpu_props.name:
             return False
-
     return True
 
 class timer:
@@ -50,7 +47,6 @@ def load_models(model_id="Lykon/dreamshaper-7"):
         torch.backends.cuda.matmul.allow_tf32 = True
 
     use_fp16 = should_use_fp16()
-
     lcm_lora_id = "latent-consistency/lcm-lora-sdv1-5"
 
     if use_fp16:
@@ -69,12 +65,10 @@ def load_models(model_id="Lykon/dreamshaper-7"):
         )
 
     pipe.scheduler = LCMScheduler.from_config(pipe.scheduler.config)
-
     pipe.load_lora_weights(lcm_lora_id)
     pipe.fuse_lora()
 
     device = "mps" if is_mac else "cuda"
-
     pipe.to(device=device)
 
     generator = torch.Generator()
@@ -85,12 +79,14 @@ def load_models(model_id="Lykon/dreamshaper-7"):
             num_inference_steps=4,
             guidance_scale=1,
             strength=0.9,
+            brightness=1.0,
+            contrast=1.0,
             seed=random.randrange(0, 2**63)
     ):
         with torch.inference_mode():
             with torch.autocast("cuda") if device == "cuda" else nullcontext():
                 with timer("inference"):
-                    return pipe(
+                    result = pipe(
                         prompt=prompt,
                         image=load_image(image),
                         generator=generator.manual_seed(seed),
@@ -98,5 +94,13 @@ def load_models(model_id="Lykon/dreamshaper-7"):
                         guidance_scale=guidance_scale,
                         strength=strength
                     ).images[0]
+
+                    # Apply brightness and contrast adjustments
+                    enhancer = ImageEnhance.Brightness(result)
+                    result = enhancer.enhance(brightness)
+                    enhancer = ImageEnhance.Contrast(result)
+                    result = enhancer.enhance(contrast)
+
+                    return result
 
     return infer
