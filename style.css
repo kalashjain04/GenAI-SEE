@@ -1,26 +1,25 @@
 /* Custom background and font */
 body {
-    background-color: #2E2E2E; /* Dark theme background */
+    background-color: #1D1D1D;
     font-family: "Arial", sans-serif;
-    color: #F0F0F0; /* Light text color for contrast */
+    color: #E6E6FA;
 }
 
 h1, h2, h3, label {
-    color: #FFD700; /* Gold color for headers and labels */
+    color: #FF7F50;
 }
 
 .gr-button-primary {
-    background-color: #3A3A3A;
-    color: #FFD700;
-    border: 2px solid #FFD700;
+    background-color: #4B0082;
+    color: #E6E6FA;
+    border: 2px solid #FF7F50;
 }
 
 .gr-slider .label {
-    color: #D3D3D3;
+    color: #B0C4DE;
 }
 
-/* Image border styling */
 .gr-image-preview {
-    border: 3px solid #FFD700;
-    border-radius: 10px;
+    border: 3px solid #FF7F50;
+    border-radius: 15px;
 }
